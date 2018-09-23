@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "tables.h"
+
 #define SYMN 100
 #define MNEMN 17
 #define ERRN 100
@@ -17,18 +19,8 @@ char errmsg[][100] = {"Invalid operand. Expected integer.",
 
 int errn=0, symn = 0;
 
-struct symtab {
-	char symbol[100];
-	char defined;
-	char used;
-	int addr;
-};
 struct symtab sym[SYMN];
 
-struct errtab {
-	int id;
-	int lno;
-};
 struct errtab err[ERRN];
 
 void addError(int id, int lno) {
