@@ -2,33 +2,12 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define SYMN 100
-#define MNEMN 17
-#define ERRN 100
-
-char mnem[][10] = {"STOP", "ADD", "SUB", "MULT",
-	"MOVER", "MOVEM", "COMP", "BC",
-	"DIV", "READ", "PRINT", "DS",
-	"DC", "START", "END", "LTORG",
-	"ORIGIN"};
-char errmsg[][100] = {"Invalid operand. Expected integer.",
-					"Invalid operand. Expected quoted integer.",
-					"Not an instruction"};
+#include "tables.h"
 
 int errn=0, symn = 0;
 
-struct symtab {
-	char symbol[100];
-	char defined;
-	char used;
-	int addr;
-};
 struct symtab sym[SYMN];
 
-struct errtab {
-	int id;
-	int lno;
-};
 struct errtab err[ERRN];
 
 void addError(int id, int lno) {
