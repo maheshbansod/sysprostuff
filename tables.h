@@ -16,6 +16,16 @@ struct errtab {
 	int lno;
 };
 
+
+struct ictab {
+	int addr;
+	char opclass; //i,a,d
+	int opcode;
+	int regop;
+	char optype; //memop type: c, s, l
+	int opvalue;
+};
+
 char mnem[][10] = {"STOP", "ADD", "SUB", "MULT",
 	"MOVER", "MOVEM", "COMP", "BC",
 	"DIV", "READ", "PRINT", "DS",
