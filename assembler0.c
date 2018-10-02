@@ -4,7 +4,9 @@
 
 #include "tables.h"
 
-int errn=0, symn = 0;
+int errn=0, symn = 0, icn = 0;
+
+struct ictab ic[ICN];
 
 struct symtab sym[SYMN];
 
@@ -63,7 +65,9 @@ int isMnemonic(char *s) { //prolly throwaway function
 }
 
 void unquoteNumber(char *s) {
-	/*It's already assumed that number is in quotes*/
+	/*It's already assumed that number is in quotes.
+	* also handles literals i.e. strings of the form
+	* "=something". */
 	int i=1;
 	s[0]=s[1];
 	while(s[i] != '\0' && s[i] != '\'') {
@@ -71,6 +75,33 @@ void unquoteNumber(char *s) {
 		i++;
 	}
 	s[i]='\0';
+}
+
+void addEntry(int addr, char *s1, char *s2, char *s3) {
+	struct symtab *symbol;
+	int x;
+	ic[icn].addr = addr;
+	ic[icn].opclass = getClass(s1);
+	ic[icn].opcode = getOpcodeUsingClass(s1, ic[icn].opclass);
+	ic[icn].regop = getRegOpVal(s2);
+	if(s3[0]!='=') { //not a literal
+		x = atoi(s3);
+		if(x==0 && strcmp(s3, "0")!=0) { //it's not a constant -> it's a symbol
+			ic[icn].optype='s';
+			if((symbol = searchSymbol(s3))==NULL) {
+				;//addError(undefined symbol at lc)
+				return;
+			}
+			ic[icn].addr=symbol->addr;
+		} else { //it's a constant
+			ic[icn].optype='c';
+			ic[icn].opvalue = x;
+		}
+	}
+	else { //it's a literal
+		ic[icn].optype = 'l'; //TODO: handle literals
+	}
+	icn++;
 }
 
 int processInstruction(int n,char * s1,char * s2,char * s3,char * s4, int lc, int lno) {
@@ -98,7 +129,8 @@ int processInstruction(int n,char * s1,char * s2,char * s3,char * s4, int lc, in
 			setSymbol(s1, -1, 1, lc);
 			processInstruction(2, s2, s3, s4, s1, lc, lno);
 		} else {
-			setSymbol(s3, 1, -1, lc); //used a symbol
+			addEntry(lc, s1, s2, s3);
+			if(s3[0]!='=') setSymbol(s3, 1, -1, lc); //TODO: add to literal pool in else part
 		}
 	} else if(n == 2) {
 		if(strcmp(s1,"START")==0) {

@@ -2,6 +2,7 @@
 #define SYMN 100
 #define MNEMN 17
 #define ERRN 100
+#define ICN 700
 
 struct symtab {
 	char symbol[100];
