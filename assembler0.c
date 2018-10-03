@@ -121,7 +121,7 @@ void addEntry(int addr, char *s1, char *s2, char *s3) {
 		ic[icn].opclass = 'a';
 		d=ADSTART-1;
 	}
-	else if(x>=DLSTART) {
+	else if(x >= DLSTART) {
 		ic[icn].opclass = 'd';
 		d=DLSTART-1;
 	} else {

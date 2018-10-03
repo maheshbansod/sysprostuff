@@ -33,7 +33,7 @@ char mnem[][10] = {"STOP", "ADD", "SUB", "MULT",
 	"MOVER", "MOVEM", "COMP", "BC",
 	"DIV", "READ", "PRINT", "DC",
 	"DS", "START", "END", "ORIGIN",
-	"EQU","LTORG"};
+	"EQU", "LTORG"};
 
 const int ADSTART=13,DLSTART=11, ISSTART=0;
 
