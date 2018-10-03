@@ -26,6 +26,14 @@ struct symtab *searchSymbol(char name[100]) {
 	return NULL;
 }
 
+int getSymbolIndex(char name[100]) {
+	int i;
+	for(i = 0;i<symn;i++)
+		if(strcmp(sym[i].symbol, name)==0)
+			return i;
+	return -1;
+}
+
 void setSymbol(char name[100], char used, char defined, int addr) {
 	struct symtab *s;
 	s = searchSymbol(name);
@@ -55,13 +63,13 @@ int hasUndefinedSymbols() {
 	return exit;
 }
 
-int isMnemonic(char *s) { //prolly throwaway function
+int getMnemonicIndex(char *s) { //prolly throwaway function
 	int i;
 	for(i=0;i<MNEMN; i++) {
 		if(strcmp(s,mnem[i])==0)
-			return 1;
+			return i;
 	}
-	return 0;
+	return -1;
 }
 
 void unquoteNumber(char *s) {
@@ -77,22 +85,56 @@ void unquoteNumber(char *s) {
 	s[i]='\0';
 }
 
+int getRegIndex(char *s) {
+	int i;
+	for(i=0;i<REGN;i++)
+		if(strcmp(s, reg[i])==0)
+			return i;
+	return -1;
+}
+
+int getCCIndex(char *s) {
+	int i;
+	for(i=0;i<CCN;i++)
+		if(strcmp(s, cc[i])==0)
+			return i;
+	return -1;
+}
+
+int getRegOpVal(char *s) {
+	int regi, cci;
+	if(s[0]=='0') return 0;
+	if((regi = getRegIndex(s))!=-1) {
+		return regi+1;
+	}
+	if((cci = getCCIndex(s))!=-1) {
+		return cci+1;
+	}
+	return 0;
+}
+
 void addEntry(int addr, char *s1, char *s2, char *s3) {
-	struct symtab *symbol;
-	int x;
+	int x,d;
 	ic[icn].addr = addr;
-	ic[icn].opclass = getClass(s1);
-	ic[icn].opcode = getOpcodeUsingClass(s1, ic[icn].opclass);
+	x=getMnemonicIndex(s1);
+	if(x>=ADSTART) {
+		ic[icn].opclass = 'a';
+		d=ADSTART-1;
+	}
+	else if(x>=DLSTART) {
+		ic[icn].opclass = 'd';
+		d=DLSTART-1;
+	} else {
+		ic[icn].opclass = 'i';
+		d=ISSTART;
+	}
+	ic[icn].opcode = x-d;
 	ic[icn].regop = getRegOpVal(s2);
 	if(s3[0]!='=') { //not a literal
 		x = atoi(s3);
 		if(x==0 && strcmp(s3, "0")!=0) { //it's not a constant -> it's a symbol
 			ic[icn].optype='s';
-			if((symbol = searchSymbol(s3))==NULL) {
-				;//addError(undefined symbol at lc)
-				return;
-			}
-			ic[icn].addr=symbol->addr;
+			ic[icn].opvalue=getSymbolIndex(s3)+1;
 		} else { //it's a constant
 			ic[icn].optype='c';
 			ic[icn].opvalue = x;
@@ -116,41 +158,47 @@ int processInstruction(int n,char * s1,char * s2,char * s3,char * s4, int lc, in
 			if(x==0 && strcmp(s4, "0") != 0) {
 				addError(0, lno);
 			}
+			addEntry(lc, s2, "0", s1); //add opcode and symbol
+			addEntry(lc, s2, "0", s3); // add constant val
 			lc+=(x-1);
 		} else if(strcmp(s2,"DC")==0) {
 			setSymbol(s1, -1, 1, lc);
 			unquoteNumber(s3);
-			x = atoi(s3); //set this constant at the mem
+			x = atoi(s3);
 			if(x==0 && strcmp("0",s3)!=0) {
 				addError(1,lno);
 			}
+			addEntry(lc, s2, "0", s1); //add opcode and symbol
+			addEntry(lc, s2, "0", s3); //add constant val
 		}
-		else if(!isMnemonic(s1)) { //islabel
+		else if(getMnemonicIndex(s1)==-1) { //islabel
 			setSymbol(s1, -1, 1, lc);
 			processInstruction(2, s2, s3, s4, s1, lc, lno);
 		} else {
-			addEntry(lc, s1, s2, s3);
 			if(s3[0]!='=') setSymbol(s3, 1, -1, lc); //TODO: add to literal pool in else part
+			addEntry(lc, s1, s2, s3);
 		}
 	} else if(n == 2) {
 		if(strcmp(s1,"START")==0) {
-			x = atoi(s2); //handle this exception
-			if(x == 0 && strcmp("0", s3) != 0) {
+			x = atoi(s2);
+			if(x == 0 && strcmp("0", s2) != 0) {
 				addError(0, lno);
 			}
+			addEntry(-1, s1, "0", s2);
 			return x;
 		} else
-		if(!isMnemonic(s1)) {
+		if(getMnemonicIndex(s1)==-1) { //label
 			setSymbol(s1, -1, 1, lc);
 			processInstruction(1, s2, s3, s4, s1, lc, lno);
-		} else {
+		} else { //operation
 			setSymbol(s2, 1, -1, lc); //used a symbol
+			addEntry(lc, s1, "0", s2);
 		}
 	} else if(n == 1) {
-		if(!isMnemonic(s1)) {
+		if(getMnemonicIndex(s1)==-1) {
 			addError(2, lno);
 		} else {
-			;//handle mnemonic
+			addEntry(lc, s1, "0", "0");
 		}
 	}
 	return lc+1;
@@ -193,6 +241,18 @@ void printSymbolTable() {
 	printf("-------------------------------------\n");
 }
 
+void printICTable() {
+	int i;
+	printf("+-----------------------------------------------------+\n");
+	printf("| Address | Opcode | Opclass | RegOp | Optype | Opval |\n");
+	printf("+---------+--------+---------+-------+--------+-------+\n");
+	for(i=0;i<icn;i++) {
+		printf("|%9d|%8d|%9c|%7d|%8c|%7d|\n",ic[i].addr, ic[i].opcode, ic[i].opclass, ic[i].regop, ic[i].optype, ic[i].opvalue);
+	};
+
+	printf("+-----------------------------------------------------+\n");
+}
+
 int main( int argc, char **argv) {
 	FILE *fp;
 
@@ -217,6 +277,7 @@ int main( int argc, char **argv) {
 		return -1;
 	} else passtwo();
 	printSymbolTable();
+	printICTable();
 
 	if(errn > 0) {
 		showErrors();

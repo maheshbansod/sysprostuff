@@ -3,6 +3,8 @@
 #define MNEMN 17
 #define ERRN 100
 #define ICN 700
+#define REGN 4
+#define CCN 6
 
 struct symtab {
 	char symbol[100];
@@ -29,11 +31,17 @@ struct ictab {
 
 char mnem[][10] = {"STOP", "ADD", "SUB", "MULT",
 	"MOVER", "MOVEM", "COMP", "BC",
-	"DIV", "READ", "PRINT", "DS",
-	"DC", "START", "END", "LTORG",
-	"ORIGIN"};
+	"DIV", "READ", "PRINT", "DC",
+	"DS", "START", "END", "ORIGIN",
+	"EQU","LTORG"};
+
+const int ADSTART=13,DLSTART=11, ISSTART=0;
+
 char errmsg[][100] = {"Invalid operand. Expected integer.",
 					"Invalid operand. Expected quoted integer.",
 					"Not an instruction"};
 
+char reg[][5] = {"AREG","BREG","CREG","DREG"};
+
+char cc[][4] = {"LT","LE","EQ","GT","GE","ANY"};
 
