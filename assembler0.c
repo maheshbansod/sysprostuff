@@ -221,7 +221,40 @@ void passone(FILE *fp) {
 	}
 }
 
-void passtwo() {
+void passtwo() { //TODO: error handling
+	FILE *outfile = fopen("out.sm","w");
+	int i, lc=0, memop=0;
+	if(outfile == NULL) {
+		//adderror
+		return;
+	}
+	for(i=0;i<icn;i++) {
+		if(ic[i].opclass=='a') { //assembler directive
+			switch(ic[i].opcode) { //prolly don't handle anything.. as we'll handle it all in pass one.
+			case 1:
+				//START
+				if(ic[i].optype != 'c')
+					//add error.. required constant after start
+					break;
+//				lc = ic[i].opvalue;
+				break;
+			}
+		} else if(ic[i].opclass=='i') { //imperative
+			if(ic[i].optype=='s')
+				memop = sym[ic[i].opvalue-1].addr;
+			else memop = 0; //TODO: handle literals
+			fprintf(outfile, "%03d %d%d%d\n", ic[i].addr,ic[i].opcode, ic[i].regop, memop);
+		} else if(ic[i].opclass=='d') { //declarative
+			if(ic[i].opcode == 1) { //DC
+				i++;
+				fprintf(outfile, "%03d %d\n",ic[i].addr, ic[i].opvalue);
+			} else if(ic[i].opcode == 2) {
+				i++;
+				fprintf(outfile, "%03d 0\n",ic[i].addr);
+			}
+		}
+	}
+	fclose(outfile);
 }
 
 void showErrors() {	
