@@ -97,6 +97,7 @@ void run(int st, int debug) {
 		case 1:
 			reg[regop] += mem[memop];
 			break;
+		case 0: break;
 		default:
 			printf("Address %03d: Invalid opcode.\n",st);
 			st = MEMSIZE;

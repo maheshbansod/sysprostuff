@@ -1,10 +1,22 @@
 
+#define LITN 100
+#define POOLN 100
 #define SYMN 100
 #define MNEMN 17
 #define ERRN 100
 #define ICN 700
 #define REGN 4
 #define CCN 6
+
+struct littab {
+	int value;
+	int address;
+};
+
+struct pooltab {
+	int index; //index of first literal of pool
+	int size; //number of literals in the pool
+};
 
 struct symtab {
 	char symbol[100];
