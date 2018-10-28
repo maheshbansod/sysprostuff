@@ -5,6 +5,7 @@ struct mnttab {
 	char name[30];
 	int pp;
 	int kp;
+	int mdtn;
 	int pntptr;
 	int kpdptr;
 	int mdtptr;
@@ -21,7 +22,12 @@ struct mdtab {
 	int i[4];
 } mdt[100];
 
-int mntn = 0, pntn = 0, kpdn = 0, mdtn = 0;
+struct aptab {
+	char value[100];
+	int pn;
+} apt[100];
+
+int mntn = 0, pntn = 0, kpdn = 0, mdtn = 0, aptn = 0;
 
 char pnt[50][100];
 
@@ -117,6 +123,50 @@ void addToMDT(char *str) {
 	mdtn++;
 }
 
+int searchKeywordDefaultValue(int kn) {
+	int i;
+	for(i=0;i<kpdn;i++) if(kpd[i].kn == kn) return i;
+	return -1;
+}
+
+int searchAPT(int pn) {
+	int i;
+	for(i=0;i<aptn;i++) if(apt[i].pn == pn) return i;
+	return -1;
+}
+
+int getMacroIndex(char *str) {
+	int i;
+	for(i=0;i<mntn;i++) if(strcmp(str, mnt[i].name)==0) return i;
+	return -1;
+}
+
+void putBody(int mi, FILE *f) {
+	int i, j, ai;
+	for(i=mnt[mi].mdtptr;i<mnt[mi].mdtn;i++) {
+		for(j=0;j<4;j++) {
+			if(mdt[i].i[j]!=-1) {
+				ai = searchAPT(mdt[i].i[j]);
+				if(ai != -1) {
+					fputs(apt[ai].value,f);
+				} else {
+					ai = searchKeywordDefaultValue(mdt[i].i[j]);
+					if(ai != -1) {
+						fputs(kpd[ai].value,f);
+					} else {
+						printf("error:  no value specified for argument. Invalid code created.\n");
+						break;
+					}
+				}
+			} else {
+				fputs(mdt[i].str[j],f);
+			}
+			fputs(" ", f);
+		}
+		if(i<mnt[mi].mdtn-1) fputs("\n",f);
+	}
+}
+
 void displayKPD() {
 	int i;
 	printf("| KN | Param | Value |\n");
@@ -158,8 +208,9 @@ void displayMDT() {
 }
 
 int main(int argc, char **argv) {
-	FILE *fp;
-	char str[100];
+	FILE *fp, *fout;
+	char str[100],*str2, *kpam, *temp,exit = 0;
+	int mi,ac;
 
 	if(argc < 2) {
 		printf("Enter a .asm file as argument.\n");
@@ -170,9 +221,14 @@ int main(int argc, char **argv) {
 		printf("Could not open '%s'.\n", argv[1]);
 		return -1;
 	}
+	fout = fopen("outm.sm", "w");
 
 	while(!feof(fp)) {
 		fgets(str, 80, fp);
+		if(strcmp("END\n",str)==0) {
+			fputs("END\n",fout);
+			break;
+		} else
 		if(strcmp(str, "MACRO\n")==0) {
 			fgets(str, 80, fp);
 			getMacroHeader(str);
@@ -182,7 +238,49 @@ int main(int argc, char **argv) {
 				addToMDT(str);
 				fgets(str, 80, fp);
 			}
+			mnt[mntn].mdtn = mdtn;
 			mntn++;
+		} else {
+			str2 = strtok(str," \n");
+			while(str2 != NULL) {
+				if((mi=getMacroIndex(str2)) != -1) {
+					//macro expansion
+					//construct apt
+					str2 = strtok(NULL, " \n");
+					ac=aptn=0;
+					while(str2 != NULL) {
+						kpam = strstr(str2,"=");
+						if(kpam != NULL) { //keyword param
+							kpam++;
+							strcpy(apt[aptn].value,kpam);
+							kpam--;
+							temp = kpam;
+							while(temp != &str2[0]) {
+								*temp = *(temp-1);
+								temp--;
+							}
+							*temp = '&';
+							*(kpam+1)='\0';
+							apt[aptn].pn = searchParameter(str2,mi);
+						} else { //positional parameter
+							strcpy(apt[aptn].value,str2);
+							apt[aptn].pn = mnt[mi].pntptr+ac;
+							ac++;
+						}
+						aptn++;
+						str2 = strtok(NULL, " \n");
+					}
+					//substituting body of macro
+					putBody(mi, fout);
+
+					break;
+				} else {
+					fputs(str2, fout);
+					fputs(" ", fout);
+				}
+				str2 = strtok(NULL, " \n");
+			}
+			fputs("\n",fout);
 		}
 	}
 
@@ -190,4 +288,7 @@ int main(int argc, char **argv) {
 	displayKPD();
 	displayPNT();
 	displayMDT();
+
+	fclose(fp);
+	fclose(fout);
 }
