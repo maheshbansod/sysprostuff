@@ -120,5 +120,4 @@ BC does not take a register operand, instead of a register operand it takes a co
 PRINT and READ do not take a register operand, a 0 is specified instead of one. E.g.: print the content at address 307: 100307
 
 # <a name='macropreprocessor0'></a>Macro preprocessor
-Not yet implemented<br>
-This will allow the programmer to create macros in the assembly language program.
+This allows the programmer to create macros in the assembly language program. See the example programs to understand the syntax for declaring and using macros.
