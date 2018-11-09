@@ -4,7 +4,7 @@
 # Table of contents
 [smac0](#smac0) <- simulator<br/>
 [assembler0](#assembler0) <- assembler<br/>
-[macropreprocessor0](#macropreprocessor) <- macro preprocessor (development not yet started)<br/>
+[macropreprocessor0](#macropreprocessor) <- macro preprocessor<br/>
 
 # <a name='assembler0'></a>Assembler
 <p>Assembly code is given to the assembler as input, it outputs a file 'out.sm' which can be fed to smac0 to get output of the assembly code.<br>
