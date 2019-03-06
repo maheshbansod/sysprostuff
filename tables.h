@@ -20,8 +20,8 @@ struct pooltab {
 
 struct symtab {
 	char symbol[100];
-	char defined;
-	char used;
+	char defined; //bool
+	char used; //bool
 	int addr;
 };
 

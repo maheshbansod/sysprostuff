@@ -179,6 +179,7 @@ void addEntry(int addr, char *s1, char *s2, char *s3) {
 	else if(x >= DLSTART) {
 		ic[icn].opclass = 'd';
 		d=DLSTART-1;
+
 	} else {
 		ic[icn].opclass = 'i';
 		d=ISSTART;
@@ -208,7 +209,7 @@ int processInstruction(int n,char * s1,char * s2,char * s3,char * s4, int lc, in
 	int x;
 	if(n==4) {
 		setSymbol(s1, -1, 1, lc); //first one is label
-		processInstruction(3, s2, s3, s4, s1, lc, lno);
+		processInstruction(3, s2, s3, s4, NULL, lc, lno);
 	} else if(n == 3) {
 		if(strcmp(s2,"DS")==0) {
 			setSymbol(s1,-1, 1, lc);
@@ -288,6 +289,11 @@ void passone(FILE *fp) {
 	fgets(str, 120, fp);
 	n = sscanf(str, "%s %s %s %s\n", s1, s2, s3, s4);
 	lc=lno=1;
+	/*
+		lno : line number in asm file
+		lc : line number in sm file
+		n : no. of valid arguments
+	*/
 
 	while(!feof(fp)) {
 		lc = processInstruction(n, s1, s2, s3, s4, lc, lno);
