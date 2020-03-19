@@ -1,8 +1,7 @@
 
 class DLListNode {
-    constructor(lno, data) {
+    constructor(data) {
         this.data = data;
-        this.lno = lno;
         this.prev = null;
         this.next = null;
     }
@@ -17,8 +16,8 @@ class DLList {
         this[tail] = null;
     }
 
-    add(lno, data) {
-        const newNode = new DLListNode(lno, data);
+    add(data) {
+        const newNode = new DLListNode(data);
         
         if(this[head] == null) {
             this[head] = newNode;
