@@ -31,6 +31,24 @@ class DLList {
         this.size++;
     }
 
+    popHead() {
+        if(this[head] == null) 
+            return null;
+        var el = this[head].data;
+        this[head].next.prev = null;
+        this[head] = this[head].next;
+        return el;
+    }
+
+    popTail() {
+        if(this[tail] == null)
+            return null;
+        var el = this[tail].data;
+        this[tail] = this[tail].prev;
+        this[tail].next = null;
+        return el;
+    }
+
     toString() {
         let str = "";
         let current = this[head];
