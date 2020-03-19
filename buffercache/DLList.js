@@ -14,6 +14,8 @@ class DLList {
     constructor() {
         this[head] = null;
         this[tail] = null;
+
+        this.size = 0;
     }
 
     add(data) {
@@ -25,6 +27,8 @@ class DLList {
             this[tail].next = newNode;
             newNode.prev = this[tail];
         }
+        this[tail] = newNode;
+        this.size++;
     }
 
     toString() {
