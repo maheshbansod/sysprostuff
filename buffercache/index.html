@@ -2,108 +2,122 @@
 <html>
     <head>
         <title>Buffer cache</title>
+        <style>
+            html, body {
+                margin: 0;
+                height: 100%;
+                font-family: Arial, Helvetica, sans-serif;
+            }
+            #buffercache {
+                display: flex;
+                height: 100%;
+                flex-wrap: wrap;
+            }
+            .hashQ {
+                border: 1px solid black;
+                margin: 4px;
+                width: 40%;
+                margin-left: auto;
+                margin-right:auto;
+            } 
+            .hashQlabel {
+                background-color: greenyellow;
+                text-align: center;
+                padding:4px;
+            }   
+            .bufdiv {
+                margin:1em;
+                /*border: 1px solid black;*/
+            }
+            #uploaddiv {
+                display:flex;
+                align-items:flex-start;
+                width:100%;
+                height:100%;
+                text-align: center;
+                justify-content: space-around;
+            }
+            #uploaddiv > label {
+                border-radius:5px;
+                border: 1px solid black;
+                padding:10px;
+                background-color: lightsalmon;
+                width:200px;
+                margin:auto;
+            }  
+        </style>
     </head>
     <body>
-        <div>
-        Upload a file: <input type="file" onchange="handleFile(this.files)">
+        Refresh page to try again.
+        <div id="uploaddiv">
+            <label for="file_input">
+                Upload a file
+                <input type="file" name="file_input" id="file_input" value="Upload a file" style="width:0">
+            </label>
         </div>
         <div id="buffercache">
             Show buffer cache here
         </div>
 
-        <script src="DLList.js"></script>
+        <script src="BufferCache.js"></script>
         <script>
-            DLList.prototype.getQHeaders = function() {
-                var headers = [];
-                var current = this[head];
-                while ( current != null) {
-                    headers.push({lno: current.data.lno});
-                    current = current.next;
-                }
-                return headers;
-            }
 
-            limit = 10;
-            hashQ = [];
-            freelist = new DLList();
-            belem = document.getElementById('buffercache');
-            file = null;
-            function hash(x) {
-                return x%4;
-            }
-            addToHashQueue = ( {lno, data} ) => {
-                var i = hash(lno) //Hash function
-                if(!hashQ[i]) {
-                    hashQ[i]=new DLList();
-                }
-                hashQ[i].add( {lno: lno, data: data} );
-            };
+            var belem = document.getElementById('buffercache');
+            var file = null;
+            const bufferSize = 10;
+            hashfn = (x)=>x%4;
+            var bufferCache;
+
             function init() {
+                bufferCache = new BufferCache(hashfn, bufferSize);
+                belem.style="display:none;";
 
-                //All buffers are free and filled with garbage
-                for(i=0;i<limit;i++) {
-                    var buffer = {lno:i+1,data:null};
-                    addToHashQueue(buffer);
-                    freelist.add(buffer);
-                }
-                addToHashQueue = ()=>{return 0}; //remove addToHashQueue function
+                document.getElementById('file_input').addEventListener("change",function(e) {
+                    var files = this.files;
+                    handleFile(files).then(()=>{
+                        document.getElementById("uploaddiv").style="display:none";
+                        refreshCacheUI();
+                        belem.style="display:flex;";
+                    })
+                });
+
                 refreshCacheUI();
             }
+
             init();
-            function handleFile(files) {
+            
+            async function handleFile(files) {
                     file = files[0];
-
-                    var reader = new FileReader();
-                    reader.onload = function(e) {
-                        const data = e.target.result;
-                        const lines = data.split(/\r\n|\n/);
-                        for(var j=0;j<limit/2;j++) {
-                            //addToHashQueue( { lno: j+1,data: lines[j] } );
-                            buffer = getblk()
-                            buffer.data = lines[j];
-                            buffer.lno = j+1;
-                        }
-                        refreshCacheUI();
+                    var i=1;
+                    var buf = [];
+                    while(!bufferCache.isFull()) {
+                        buf[i-1] = await bufferCache.getblk(file,i);
+                        //buf.status = 'free';
+                        //bufferCache.addToFreeListHead(buf);
+                        i++;
                     }
-                    reader.readAsText(file);
-            }
-
-            function getblk() {
-                /* TODO: handle all scenarios */
-                if(arguments.length == 0)
-                    lno = null;
-                //directly add
-                if(lno == null) {
-                    var buffer = freelist.popHead();
-                    return buffer;
-                } else {
-                    /*return specific buffer*/
-                }
+                    --i;
+                    while(--i) {
+                        console.log(i);
+                        buf[i].status='free';
+                        bufferCache.addToFreeListHead(buf[i]);
+                    }
             }
 
             function refreshCacheUI() {
-                if(hashQ.length == 0) {
-                    belem.innerHTML = "/buffer cache is empty/<br>Show buffer cache here"
-                    return;
-                }
-                var op = "";
+                var str = "";
+                hashQ = bufferCache.hashQ;
                 for(var i=0;i<hashQ.length;i++) {
-                    op += "<div class='hashq' id='hashq"+i+"'>";
-                    op += "<div class='hashq_label'>"+i+"</div>";
-                    op += "<div class='hashq_content'>";
-                    if(hashQ[i]) {
-                        var q = hashQ[i].getQHeaders();
-                        //console.log(q, q.length);
-                        for(j=0;j<q.length;j++) {
-                            op += "<div class='hashq_elem'>";
-                            op += "<div class='hashq_lno'>Line: "+q[j].lno+"</div>";
-                            op += "<div class='hashq_datalabel'>data</div>";
-                        }
+                    str+="<div class='hashQ'>";
+                    str += "<div class='hashQlabel'>Hash Queue "+i+"</div>";
+                    var current = hashQ[i].hqnext;
+                    while(current != null) {
+                        str+="<div class='bufdiv'>Line "+current.id+": "+current.data+"</div>";
+                        current = current.hqnext;
                     }
-                    op += "</div>";
-                    op += "</div>";
+                    str+="</div>";
                 }
-                belem.innerHTML = op;
+                belem.innerHTML = str;
             }
         </script>
     </body>
