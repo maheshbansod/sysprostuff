@@ -5,12 +5,12 @@
         <style>
             html, body {
                 margin: 0;
-                height: 100%;
+                /*height: 100%;*/
                 font-family: Arial, Helvetica, sans-serif;
             }
             #buffercache {
                 display: flex;
-                height: 100%;
+                /*height: 100%;*/
                 flex-wrap: wrap;
             }
             .hashQ {
@@ -29,6 +29,9 @@
                 margin:1em;
                 /*border: 1px solid black;*/
             }
+            .bufdiv.lastread {
+                background-color: #f6f699;
+            }
             #uploaddiv {
                 display:flex;
                 align-items:flex-start;
@@ -44,26 +47,55 @@
                 background-color: lightsalmon;
                 width:200px;
                 margin:auto;
-            }  
+            }
+            #freelistdiv {
+                margin: 1em;
+            }
+            .flbuf {
+               /* display:inline-block;*/
+                background-color: green;
+                padding:4px;
+                border:1px solid black;
+                width:50px;
+            }
+            .flbuf.lastread {
+                background-color: lightgreen;
+            }
+            #controlbox {
+                text-align: center;
+            }
         </style>
     </head>
     <body>
-        Refresh page to try again.
+        <div id="msgbox">
+        </div>
+        <div id="controlbox" style="display:none">
+            <hr>
+            <button id="nextlinebutton" onclick="getNextLine(this)">getblk(next line)</button><br>
+            <input type="text" placeholder="line" id="line_input"><button onclick="getInputLine()">get line</button>
+            <p id="optext"></p>
+            <hr>
+        </div>
         <div id="uploaddiv">
             <label for="file_input">
                 Upload a file
                 <input type="file" name="file_input" id="file_input" value="Upload a file" style="width:0">
             </label>
         </div>
+        <div id="freelistdiv" style="display:none">
+            freelist here
+        </div>
         <div id="buffercache">
             Show buffer cache here
         </div>
-
         <script src="BufferCache.js"></script>
         <script>
 
             var belem = document.getElementById('buffercache');
+            var felem = document.getElementById('freelistdiv');
+            var msgbox = document.getElementById('msgbox');
             var file = null;
+            var lastRead=0;
             const bufferSize = 10;
             hashfn = (x)=>x%4;
             var bufferCache;
@@ -78,6 +110,10 @@
                         document.getElementById("uploaddiv").style="display:none";
                         refreshCacheUI();
                         belem.style="display:flex;";
+                        felem.style="display:block;";
+                        document.getElementById('controlbox').style="display:block";
+                        document.getElementById('nextlinebutton').innerHTML = "get next line(line "+(lastRead+1)+")";
+                        msgbox.innerHTML+=" "+(lastRead)+" lines loaded.<br>Refresh page to try with another file.";
                     })
                 });
 
@@ -92,16 +128,41 @@
                     var buf = [];
                     while(!bufferCache.isFull()) {
                         buf[i-1] = await bufferCache.getblk(file,i);
+                        if(buf[i-1].data=="...")
+                            msgbox.innerHTML+="<br>Attempted to read line "+i--+" but reached end of file.";
                         //buf.status = 'free';
                         //bufferCache.addToFreeListHead(buf);
                         i++;
                     }
                     --i;
-                    while(--i) {
-                        console.log(i);
+                    lastRead = i;
+                    while(i--) {
                         buf[i].status='free';
                         bufferCache.addToFreeListHead(buf[i]);
                     }
+            }
+
+            async function getNextLine() {
+                //maybe create a loading thing??
+                getAndFreeBuffer(lastRead+1);
+            }
+
+            async function getInputLine() {
+                var lno = Number(document.getElementById('line_input').value);
+                getAndFreeBuffer(lno);
+            }
+
+            async function getAndFreeBuffer(line) {
+                var buf = await bufferCache.getblk(file,line);
+                if(buf.data == '...')
+                    msgbox.innerHTML+='<br>Attempted to read line '+line+' but reached end of file.';
+                document.getElementById('optext').innerHTML = "Line "+line+": "+buf.data;
+                buf.status = 'free';
+                bufferCache.addToFreeListTail(buf);
+                lastRead = line;
+                var btn = document.getElementById('nextlinebutton');
+                btn.innerHTML = "get next line(line "+(lastRead+1)+")";
+                refreshCacheUI();
             }
 
             function refreshCacheUI() {
@@ -112,12 +173,24 @@
                     str += "<div class='hashQlabel'>Hash Queue "+i+"</div>";
                     var current = hashQ[i].hqnext;
                     while(current != null) {
-                        str+="<div class='bufdiv'>Line "+current.id+": "+current.data+"</div>";
+                        str+="<div class='bufdiv";
+                        if(lastRead == current.id) str+=" lastread";
+                        str+="'>Line "+current.id+": "+current.data+"</div>";
                         current = current.hqnext;
                     }
                     str+="</div>";
                 }
                 belem.innerHTML = str;
+                str="<span class='flbuf'>Free List head</span>-->";
+                var current = bufferCache.freelist.flnext;
+                while(current != bufferCache.freelist) {
+                    str+="<span class='flbuf";
+                    if(current.id == lastRead) str+=' lastread';
+                    str+="'>Line "+current.id+"</span>-->";
+                    current = current.flnext;
+                }
+                str+="<span class='flbuf'>[back to head]</span>";
+                felem.innerHTML = str;
             }
         </script>
     </body>
