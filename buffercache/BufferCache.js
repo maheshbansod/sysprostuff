@@ -77,6 +77,13 @@ class BufferCache {
         buffer.flprev = this.freelist;
     }
 
+    addToFreeListTail(buffer) {
+        this.freelist.flprev.flnext = buffer;
+        buffer.flprev = this.freelist.flprev;
+        this.freelist.flprev = buffer;
+        buffer.flnext = this.freelist;
+    }
+
     removeFromFreeList(buffer) {
         if(buffer.flnext == null || buffer.flprev == null)
             return;
